@@ -32,7 +32,6 @@ function buildMessage(d: Lead): string {
     ["💰 Вартість", d.price],
     ["🕐 Бажаний час", d.preferred_time ?? d.slot],
     ["⏱ Коли зручно", d.timeline],
-    ["🔗 Джерело", d.source],
   ];
   const lines = rows
     .filter((row) => row[1] != null && String(row[1]).trim() !== "")

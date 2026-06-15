@@ -22,7 +22,7 @@ export function Header() {
     <>
       <header
         className={cn(
-          "fixed inset-x-0 top-0 z-50 transition-[background-color,border-color,backdrop-filter] duration-500",
+          "fixed inset-x-0 top-0 z-50 transition-[background-color,border-color] duration-500",
           scrolled
             ? "border-b border-line/80 bg-bg/95 backdrop-blur-md supports-[backdrop-filter]:bg-bg/65"
             : "border-b border-transparent bg-transparent",

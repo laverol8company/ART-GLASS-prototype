@@ -304,16 +304,24 @@
     }
   }
 
-  /* Film grain overlay (§5, §10) — put on a fixed, pointer-none layer in layout. */
+  /* Film grain overlay (§5, §10) — fixed, pointer-none layer in layout.
+     NB: no mix-blend-mode — a full-screen blended fixed layer forces the
+     compositor to re-blend the whole viewport every scroll/animation frame
+     (major jank). A plain low-opacity texture composites on its own layer. */
   .grain {
     position: fixed;
     inset: 0;
     z-index: 60;
     pointer-events: none;
-    opacity: 0.04;
-    mix-blend-mode: overlay;
+    opacity: 0.05;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
     background-size: 120px 120px;
+  }
+  /* purely decorative — drop it where users opt out (also removes its cost). */
+  @media (prefers-reduced-transparency: reduce) {
+    .grain {
+      display: none;
+    }
   }
 }
 

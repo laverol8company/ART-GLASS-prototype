@@ -28,11 +28,12 @@ const SCRIMS = {
 const SEAM =
   "linear-gradient(180deg, var(--color-bg), transparent 14%, transparent 85%, var(--color-bg))";
 
-// a few drift paths so adjacent sections don't move in lock-step
+// a few drift paths so adjacent sections don't move in lock-step.
+// Low amplitude keeps the layer small (cheaper compositing).
 const DRIFTS = [
-  { scale: [1.06, 1.13], x: [0, -16], y: [0, 10] },
-  { scale: [1.12, 1.05], x: [0, 14], y: [0, -8] },
-  { scale: [1.05, 1.12], x: [0, 10], y: [0, 14] },
+  { scale: [1.04, 1.09], x: [0, -12], y: [0, 8] },
+  { scale: [1.08, 1.04], x: [0, 10], y: [0, -6] },
+  { scale: [1.04, 1.09], x: [0, 8], y: [0, 10] },
 ];
 
 export function SectionBg({
@@ -48,12 +49,13 @@ export function SectionBg({
 }) {
   const reduce = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { margin: "10% 0px" });
+  // negative margin → only the genuinely on-screen backdrop drifts (never 2 at once)
+  const inView = useInView(ref, { margin: "-10% 0px -10% 0px" });
+  const moving = !reduce && inView;
   const d = DRIFTS[drift % DRIFTS.length];
-  const animate =
-    reduce || !inView
-      ? { scale: 1.08, x: 0, y: 0 }
-      : { scale: d.scale, x: d.x, y: d.y };
+  const animate = moving
+    ? { scale: d.scale, x: d.x, y: d.y }
+    : { scale: 1.06, x: 0, y: 0 };
 
   return (
     <div
@@ -71,6 +73,9 @@ export function SectionBg({
           repeatType: "reverse",
           ease: "easeInOut",
         }}
+        // transform-only layer (no filter here) stays on the fast GPU path;
+        // release the compositor layer when idle/off-screen
+        style={{ willChange: moving ? "transform" : "auto" }}
       >
         <Image
           src={src}
@@ -78,7 +83,7 @@ export function SectionBg({
           fill
           loading="lazy"
           sizes="100vw"
-          className="graded object-cover"
+          className="object-cover"
           style={{ objectPosition: position }}
         />
       </motion.div>

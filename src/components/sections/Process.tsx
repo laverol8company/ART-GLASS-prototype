@@ -33,7 +33,7 @@ export function Process() {
             trigger: section,
             start: "top top",
             end: () => `+=${distance()}`,
-            scrub: 1,
+            scrub: 0.4,
             pin: true,
             anticipatePin: 1,
             invalidateOnRefresh: true,

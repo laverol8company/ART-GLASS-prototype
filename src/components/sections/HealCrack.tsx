@@ -41,7 +41,7 @@ export function HealCrack() {
           trigger: section,
           start: "top top",
           end: "+=120%",
-          scrub: 1,
+          scrub: 0.4,
           pin: true,
           anticipatePin: 1,
           invalidateOnRefresh: true,

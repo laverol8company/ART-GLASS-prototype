@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, type PointerEvent } from "react";
+import { useEffect, useRef, type PointerEvent } from "react";
 import Image from "next/image";
 import {
   motion,
+  useInView,
   useMotionValue,
   useReducedMotion,
   useScroll,
@@ -41,15 +42,30 @@ export function Hero() {
   const sy = useSpring(my, { stiffness: 55, damping: 18, mass: 0.4 });
   const bgX = useTransform(sx, [-1, 1], [-24, 24]);
   const bgYc = useTransform(sy, [-1, 1], [-18, 18]);
-  const moteX = useTransform(sx, [-1, 1], [18, -18]);
-  const moteY = useTransform(sy, [-1, 1], [14, -14]);
 
+  // pause the bg video while the hero is off-screen — no idle frame decoding
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const heroInView = useInView(ref, { margin: "0px" });
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v || reduce) return;
+    if (heroInView) v.play().catch(() => {});
+    else v.pause();
+  }, [heroInView, reduce]);
+
+  // cursor parallax — one rAF per move, skipped on touch / reduced motion
+  const rafRef = useRef(0);
   const onPointerMove = (e: PointerEvent<HTMLElement>) => {
-    if (reduce) return;
+    if (reduce || e.pointerType === "touch") return;
     const r = ref.current?.getBoundingClientRect();
     if (!r) return;
-    mx.set(((e.clientX - r.left) / r.width) * 2 - 1);
-    my.set(((e.clientY - r.top) / r.height) * 2 - 1);
+    const px = ((e.clientX - r.left) / r.width) * 2 - 1;
+    const py = ((e.clientY - r.top) / r.height) * 2 - 1;
+    cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(() => {
+      mx.set(px);
+      my.set(py);
+    });
   };
   const resetPointer = () => {
     mx.set(0);
@@ -84,12 +100,13 @@ export function Hero() {
           />
           {!reduce && (
             <video
+              ref={videoRef}
               aria-hidden
               autoPlay
               muted
               loop
               playsInline
-              preload="auto"
+              preload="none"
               poster="/media/hero-car.jpg"
               className="graded absolute inset-0 size-full object-cover"
             >
@@ -109,7 +126,7 @@ export function Hero() {
             "radial-gradient(58% 55% at 12% 26%, rgba(45,212,191,0.24), transparent 62%)",
         }}
         initial={{ x: 0, y: 0 }}
-        animate={reduce ? undefined : { x: [0, 34, 0], y: [0, -22, 0] }}
+        animate={reduce || !heroInView ? undefined : { x: [0, 34, 0], y: [0, -22, 0] }}
         transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
       />
       <div
@@ -162,14 +179,10 @@ export function Hero() {
         }}
       />
 
-      {/* ambient light motes — cursor parallax (opposite, gentler) */}
-      <motion.div
-        aria-hidden
-        style={{ x: moteX, y: moteY }}
-        className="absolute inset-0"
-      >
+      {/* ambient light motes (static layer — no per-mousemove recomposite) */}
+      <div aria-hidden className="absolute inset-0">
         <HeroParticles />
-      </motion.div>
+      </div>
 
       {/* content — centered on mobile, editorial left on desktop (§4.3) */}
       <motion.div

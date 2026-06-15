@@ -140,6 +140,9 @@ export function BotQualifier({
   const [activeDay, setActiveDay] = useState(SLOT_DAYS[0].id);
   const [slot, setSlot] = useState<Slot | null>(null);
   const [booked, setBooked] = useState(false);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [sending, setSending] = useState(false);
   const status = useOpenStatus();
   const reduce = useReducedMotion();
   const total = BOT_STEPS.length;
@@ -158,6 +161,8 @@ export function BotQualifier({
     setAnswers({});
     setSlot(null);
     setBooked(false);
+    setName("");
+    setPhone("");
     setActiveDay(SLOT_DAYS[0].id);
     setStep(0);
   };
@@ -170,8 +175,33 @@ export function BotQualifier({
     ? `${slot.dayLabel}, ${slot.time}`
     : (answers.timeline?.label ?? "узгодимо");
 
-  // PROTOTYPE: booking confirms in-app (no Telegram handoff). In production,
-  // POST { answers, rec, slot } to the studio's CRM / mini-calendar here.
+  // Booking → send the qualifier result (answers + recommendation + slot +
+  // contact) to the studio's CRM, then show the celebration.
+  const phoneOk = phone.replace(/\D/g, "").length >= 7;
+  const book = async () => {
+    if (sending || !phoneOk) return;
+    setSending(true);
+    const payload: Record<string, string> = {
+      name: name.trim() || "Заявка з квізу",
+      phone: phone.trim(),
+      service: rec.title,
+      price: rec.priceFrom,
+      preferred_time: timeLabel,
+      source: "ART GLASS — сайт",
+    };
+    for (const [k, v] of Object.entries(answers)) payload[k] = v.label;
+    try {
+      await fetch("/api/lead", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    } catch {
+      /* заявку все одно підтверджуємо — майстер передзвонить */
+    }
+    setSending(false);
+    setBooked(true);
+  };
 
   /* ---- booking celebration ("свято") -------------------------------------- */
   const celebration = (
@@ -566,15 +596,40 @@ export function BotQualifier({
               </div>
             </div>
 
+            {/* contact — потрібен телефон, щоб майстер передзвонив */}
+            <div className="mt-4 grid gap-2">
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Ваше імʼя (необовʼязково)"
+                autoComplete="name"
+                className="min-h-11 rounded-[var(--radius-sm)] border border-line-2 bg-bg/40 px-3.5 text-sm text-bone outline-none transition-colors placeholder:text-muted-2 focus:border-chrome-2"
+              />
+              <input
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder="+380 __ ___ __ __"
+                className="min-h-11 rounded-[var(--radius-sm)] border border-line-2 bg-bg/40 px-3.5 text-sm text-bone outline-none transition-colors placeholder:text-muted-2 focus:border-chrome-2"
+              />
+            </div>
+
             <motion.button
               type="button"
               whileTap={TAP}
               transition={SPRING}
-              onClick={() => setBooked(true)}
-              className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-pill bg-bone px-5 text-sm font-medium text-bg transition-opacity hover:opacity-90"
+              onClick={book}
+              disabled={sending || !phoneOk}
+              className="mt-3 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-pill bg-bone px-5 text-sm font-medium text-bg transition-opacity hover:opacity-90 disabled:opacity-50"
             >
               <CalendarCheck size={18} weight="light" />
-              {slot ? `Записатися на ${slot.time}` : "Записатися"}
+              {sending
+                ? "Надсилаємо…"
+                : slot
+                  ? `Записатися на ${slot.time}`
+                  : "Записатися"}
             </motion.button>
             <p className="mt-2 text-center text-xs text-muted-2">
               Заявка піде майстру — він підтвердить час і деталі.

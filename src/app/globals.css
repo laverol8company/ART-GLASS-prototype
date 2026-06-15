@@ -1,0 +1,418 @@
+@import "tailwindcss";
+
+/* ============================================================================
+   Art Glass — design system (§4, §5, §10). One accent (light/glass), one type
+   pair, one radius scale, one motion easing vocabulary. Disciplined monochrome.
+   ============================================================================ */
+@theme {
+  /* Fonts — wired to next/font CSS variables (see src/lib/fonts.ts). */
+  --font-display: var(--font-clash), "Neue Montreal", sans-serif;
+  --font-body: var(--font-geist), "Hanken Grotesk", sans-serif;
+  --font-mono: var(--font-geist-mono), "JetBrains Mono", monospace;
+
+  /* Palette — monochrome + disciplined functional accent (§4.1). */
+  --color-bg: #0b0c0e;
+  --color-bg-2: #0c0d0f;
+  --color-surface: #131417;
+  --color-surface-2: #16181c;
+  --color-chrome: #c6cacf;
+  --color-chrome-2: #9a9ea6;
+  /* bone/muted/accent refined vs CLAUDE.md §4.1 baseline per client feedback
+     (2026-06): whiter white, higher secondary contrast, softer champagne. */
+  --color-bone: #f5f6f8;
+  --color-muted: #a2a6ad;
+  --color-muted-2: #82868e; /* lightened to clear WCAG AA (4.5:1) on bg for small labels */
+  --color-line: #1e2024;
+  --color-line-2: #3a3d42;
+  --color-accent: #2dd4bf; /* bright turquoise — single brand accent (glass/light), ≤10% */
+  --color-status: #6fcf97; /* online / "відчинено" (green) */
+
+  /* Multicolor status system (living-details) — each color = ONE fixed meaning,
+     muted to the dark base, used only on small marks (dots / badges / counters),
+     never as a section fill. This is "more color" done as a system, not a rainbow. */
+  --color-feature: #2dd4bf; /* same turquoise — live / interactive marks */
+  --color-rating: #f3c14e; /* gold — rating stars only (convention, not a brand accent) */
+  --color-info: #6fa8dc; /* NEW / informational (cool blue) */
+  --color-sale: #e8a56b; /* акція / offer (warm amber, never alarm-red) */
+  --color-attention: #e0935a; /* limited / few slots (orange) */
+
+  /* Radii — single scale (§4.1). */
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --radius-pill: 999px;
+
+  /* Motion easing language (§4.5) — mirrored in JS (src/lib/motion-presets.ts). */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1); /* section entrances */
+  --ease-inout: cubic-bezier(0.76, 0, 0.24, 1); /* glass curtain */
+  --ease-glide: cubic-bezier(0.4, 0, 0.2, 1); /* highlights, sweep */
+}
+
+/* Non-tokenized custom properties: elevation (§4.4) + photo grade (§10). */
+:root {
+  /* Shadows — tinted toward the background, never pure black. */
+  --shadow-1: 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+  --shadow-2: 0 8px 32px rgba(0, 0, 0, 0.35);
+
+  /* Unified photo grade (§10) — the biggest "expensive" lever. One cool graphite
+     grade across all imagery so mixed sources read as one brand. */
+  /* Brighter, livelier grade (client wanted more "bodro") while staying one
+     cohesive look — saturation up, a touch brighter, contrast eased slightly. */
+  --grade-saturate: 0.85;
+  --grade-contrast: 1.06;
+  --grade-brightness: 1.04;
+}
+
+/* ============================================================================
+   Base
+   ============================================================================ */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    /* Smooth-scroll one-pager: Lenis + the side section counter give scroll
+       feedback, so hide the native scrollbar for a clean premium frame. */
+    scrollbar-width: none; /* Firefox */
+  }
+  html::-webkit-scrollbar {
+    display: none; /* Chromium / WebKit */
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-bone);
+    font-family: var(--font-body);
+    font-feature-settings: "kern", "liga", "calt";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    /* Never a horizontal scrollbar, whatever a bg/parallax layer extends past.
+       `clip` (not `hidden`) so position: sticky keeps working. */
+    overflow-x: clip;
+  }
+
+  /* Sensible media + form resets. */
+  img,
+  picture,
+  video,
+  canvas,
+  svg {
+    display: block;
+    max-width: 100%;
+  }
+
+  input,
+  button,
+  textarea,
+  select {
+    font: inherit;
+    color: inherit;
+  }
+
+  /* Typographic defaults (§4.2): balanced headings, pretty body wrap. */
+  h1,
+  h2,
+  h3,
+  h4 {
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Tabular numerics for stats / prices / specs (§4.2). */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  ::selection {
+    background: rgba(45, 212, 191, 0.22); /* turquoise tint */
+    color: var(--color-bone);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-chrome);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Reduced motion → collapse to static (§4.5, §11). */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* ============================================================================
+   Layout helpers
+   ============================================================================ */
+@layer components {
+  /* Container — max ~1280px with fluid gutters, 8pt rhythm (§4.3). */
+  .container-page {
+    width: 100%;
+    max-width: 80rem;
+    margin-inline: auto;
+    padding-inline: clamp(1.25rem, 5vw, 2.5rem);
+  }
+
+  /* Measure for editorial body copy (§4.2). */
+  .measure {
+    max-width: 68ch;
+  }
+
+  /* Scrims — keep text on media/glass at ≥AA contrast (§5.4, §11). */
+  .scrim-bottom {
+    background: linear-gradient(
+      to top,
+      rgba(11, 12, 14, 0.88),
+      rgba(11, 12, 14, 0.4) 42%,
+      transparent
+    );
+  }
+  .scrim-radial {
+    background: radial-gradient(
+      120% 80% at 50% 100%,
+      rgba(11, 12, 14, 0.82),
+      transparent 70%
+    );
+  }
+
+  /* Unified photo grade (§10) — apply to imagery; tune via :root vars in step 7. */
+  .graded {
+    filter: saturate(var(--grade-saturate)) contrast(var(--grade-contrast))
+      brightness(var(--grade-brightness));
+  }
+
+  /* "Before" headlight grade — oxidized yellow haze (kept with .graded so all
+     photo grading lives in one place). */
+  .haze {
+    filter: saturate(0.75) contrast(0.85) sepia(0.45) brightness(0.92);
+  }
+
+  /* Visible keyboard focus for the before/after comparator — its range input
+     is transparent, so the frame carries the ring (§11). */
+  .ba-frame:has(input[type="range"]:focus-visible) {
+    outline: 2px solid var(--color-chrome);
+    outline-offset: 4px;
+  }
+
+  /* Living status dot — slow pulse ring (~2.4s), never a blink. transform/
+     opacity only; collapses to a static dot under reduced motion. */
+  @keyframes ag-pulse-ring {
+    0% {
+      transform: scale(1);
+      opacity: 0.45;
+    }
+    70%,
+    100% {
+      transform: scale(2.4);
+      opacity: 0;
+    }
+  }
+  .status-dot {
+    position: relative;
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--dot, var(--color-status));
+    flex-shrink: 0;
+  }
+  .status-dot::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: var(--dot, var(--color-status));
+    animation: ag-pulse-ring 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  /* status-dot colour variants (meaning per the status system) */
+  .dot-feature {
+    --dot: var(--color-feature);
+  }
+  .dot-info {
+    --dot: var(--color-info);
+  }
+  .dot-sale {
+    --dot: var(--color-sale);
+  }
+  .dot-attention {
+    --dot: var(--color-attention);
+  }
+
+  /* Attention pulse-ring for a key element (e.g. the bot launcher) — a colored
+     ring scales out behind it. transform/opacity only; one per viewport. */
+  @keyframes ag-ring {
+    0% {
+      transform: scale(1);
+      opacity: 0.4;
+    }
+    70%,
+    100% {
+      transform: scale(1.22);
+      opacity: 0;
+    }
+  }
+  .pulse-ring::before {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--ring, var(--color-feature));
+    animation: ag-ring 2.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .status-dot::after,
+    .pulse-ring::before {
+      animation: none;
+      opacity: 0;
+    }
+  }
+
+  /* Drifting light motes (living-details ambient) — faint cyan dust rising. */
+  @keyframes ag-float {
+    0% {
+      transform: translateY(8px);
+      opacity: 0;
+    }
+    50% {
+      opacity: var(--mote-op, 0.5);
+    }
+    100% {
+      transform: translateY(-44px);
+      opacity: 0;
+    }
+  }
+  .mote {
+    position: absolute;
+    border-radius: 999px;
+    background: var(--color-feature);
+    animation: ag-float var(--mote-dur, 9s) ease-in-out infinite;
+    animation-delay: var(--mote-delay, 0s);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .mote {
+      animation: none;
+      opacity: 0;
+    }
+  }
+
+  /* Film grain overlay (§5, §10) — put on a fixed, pointer-none layer in layout. */
+  .grain {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    pointer-events: none;
+    opacity: 0.04;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 120px 120px;
+  }
+}
+
+/* ============================================================================
+   Liquid glass — material accent (§5). Tier 1 (pure CSS). Apply pointwise:
+   floating nav, bot card/button, main CTA, mobile overlay, slider handle,
+   hero badge. Do NOT flood every section.
+   ============================================================================ */
+@layer components {
+  .liquid-glass {
+    position: relative;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.4),
+      inset 0 1px 1px rgba(255, 255, 255, 0.22),
+      inset 0 -1px 1px rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-lg);
+  }
+
+  /* Thin glowing edge via mask-composite. */
+  .liquid-glass::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1.3px;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.6),
+      rgba(255, 255, 255, 0.08) 38%,
+      rgba(255, 255, 255, 0) 55%,
+      rgba(255, 255, 255, 0.45)
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Specular highlight that follows the cursor — JS writes --mx/--my (§5.1). */
+  .liquid-glass__specular {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s var(--ease-glide);
+    background: radial-gradient(
+      180px circle at var(--mx, 50%) var(--my, 50%),
+      rgba(255, 255, 255, 0.12),
+      transparent 60%
+    );
+  }
+  .liquid-glass:hover .liquid-glass__specular {
+    opacity: 1;
+  }
+
+  /* Sliding sheen — transform/opacity only, never animate blur (§4.5, §16). */
+  @keyframes ag-sheen {
+    from {
+      transform: translateX(-130%);
+    }
+    to {
+      transform: translateX(130%);
+    }
+  }
+  .liquid-glass__sheen {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 42%;
+    pointer-events: none;
+    transform: translateX(-130%);
+    background: linear-gradient(
+      100deg,
+      transparent,
+      rgba(255, 255, 255, 0.14),
+      transparent
+    );
+  }
+  .liquid-glass:hover .liquid-glass__sheen {
+    animation: ag-sheen 1.1s var(--ease-glide);
+  }
+
+  /* Solid frosted fallback (§5.1, §5.4). */
+  @media (prefers-reduced-transparency: reduce) {
+    .liquid-glass {
+      background: #1a1c20;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+    .liquid-glass__specular,
+    .liquid-glass__sheen {
+      display: none;
+    }
+  }
+}

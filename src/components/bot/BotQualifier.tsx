@@ -9,6 +9,7 @@ import {
   CalendarBlank,
   CalendarCheck,
   Car,
+  CaretDown,
   Check,
   Checks,
   Crown,
@@ -31,6 +32,7 @@ import { LiquidGlass } from "@/components/ui/LiquidGlass";
 import { CountUp } from "@/components/ui/CountUp";
 import { BotMotif } from "@/components/bot/BotMotif";
 import {
+  CAR_BRANDS,
   SERVICE_ACCENT,
   SLOT_DAYS,
   TIMELINE_DAY,
@@ -146,6 +148,7 @@ export function BotQualifier({
   const [booked, setBooked] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [brand, setBrand] = useState("");
   const [sending, setSending] = useState(false);
   const status = useOpenStatus();
   const reduce = useReducedMotion();
@@ -178,6 +181,7 @@ export function BotQualifier({
     setBooked(false);
     setName("");
     setPhone("");
+    setBrand("");
     setActiveDay(SLOT_DAYS[0].id);
     setStep(0);
   };
@@ -204,6 +208,7 @@ export function BotQualifier({
       preferred_time: timeLabel,
       source: "ART GLASS — сайт",
     };
+    if (brand) payload.car_brand = brand;
     for (const [k, v] of Object.entries(answers)) payload[k] = v.label;
     try {
       await fetch("/api/lead", {
@@ -621,8 +626,32 @@ export function BotQualifier({
               </div>
             </div>
 
-            {/* contact — потрібен телефон, щоб майстер передзвонив */}
+            {/* contact — марка авто + телефон, щоб майстер передзвонив */}
             <div className="mt-4 grid gap-2">
+              <div className="relative">
+                <select
+                  value={brand}
+                  onChange={(e) => setBrand(e.target.value)}
+                  aria-label="Марка авто"
+                  className={cn(
+                    "min-h-11 w-full appearance-none rounded-[var(--radius-sm)] border border-line-2 bg-bg/40 px-3.5 pr-9 text-sm outline-none transition-colors focus:border-chrome-2",
+                    brand ? "text-bone" : "text-muted-2",
+                  )}
+                >
+                  <option value="">Марка авто (необовʼязково)</option>
+                  {CAR_BRANDS.map((b) => (
+                    <option key={b} value={b} className="bg-surface text-bone">
+                      {b}
+                    </option>
+                  ))}
+                </select>
+                <CaretDown
+                  size={15}
+                  weight="light"
+                  aria-hidden
+                  className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-muted-2"
+                />
+              </div>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}

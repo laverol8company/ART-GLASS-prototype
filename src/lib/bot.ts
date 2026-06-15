@@ -134,6 +134,32 @@ export function getSteps(problem?: string): BotStep[] {
   ];
 }
 
+/** Car brands for the booking-form picker — common in Kyiv + premium segment.
+ *  Optional field; helps the master prep before the call. "Інша" = free case. */
+export const CAR_BRANDS = [
+  "BMW",
+  "Mercedes-Benz",
+  "Audi",
+  "Porsche",
+  "Volkswagen",
+  "Toyota",
+  "Lexus",
+  "Nissan",
+  "Mazda",
+  "Honda",
+  "Land Rover",
+  "Tesla",
+  "Volvo",
+  "Hyundai",
+  "Kia",
+  "Škoda",
+  "Renault",
+  "Ford",
+  "Mitsubishi",
+  "Peugeot",
+  "Інша",
+] as const;
+
 /** Timeline answer → which slot day to pre-open (so we don't ask for time twice). */
 export const TIMELINE_DAY: Record<string, string> = {
   asap: "today",

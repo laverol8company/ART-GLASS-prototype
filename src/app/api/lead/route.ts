@@ -52,7 +52,7 @@ function buildMessage(d: Lead): string {
   return (
     "🚗 <b>Нова заявка — Art Glass</b>\n\n" +
     lines.join("\n") +
-    (ts ? `\n\n🕒 ${esc(ts)} (Київ)` : "")
+    (ts ? `\n\n${esc(ts)}` : "")
   );
 }
 

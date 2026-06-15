@@ -27,7 +27,7 @@ export function Booking() {
             {[
               "Чесна рекомендація під вашу ситуацію",
               "Орієнтовна ціна одразу, точна — після огляду",
-              "Заявка йде прямо в Telegram майстру",
+              "Майстер передзвонить і підтвердить зручний час",
             ].map((point) => (
               <li key={point} className="flex items-start gap-2">
                 <ShieldCheck

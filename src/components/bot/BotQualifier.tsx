@@ -19,6 +19,8 @@ import {
   Jeep,
   Lightbulb,
   Lightning,
+  Path,
+  Ruler,
   SealCheck,
   ShieldCheck,
   Sparkle,
@@ -29,11 +31,11 @@ import { LiquidGlass } from "@/components/ui/LiquidGlass";
 import { CountUp } from "@/components/ui/CountUp";
 import { BotMotif } from "@/components/bot/BotMotif";
 import {
-  BOT_STEPS,
   SERVICE_ACCENT,
   SLOT_DAYS,
   TIMELINE_DAY,
   getRecommendation,
+  getSteps,
   type BotOption,
 } from "@/lib/bot";
 import { useOpenStatus } from "@/hooks/useOpenStatus";
@@ -57,6 +59,8 @@ const ICONS: Record<
   eye: Eye,
   sun: Sun,
   lightning: Lightning,
+  ruler: Ruler,
+  path: Path,
   calendar: CalendarBlank,
   info: Info,
 };
@@ -123,7 +127,7 @@ const OPT_ITEM = {
   animate: { opacity: 1, y: 0 },
 };
 
-type Answer = { value: string; label: string };
+type Answer = { value: string; label: string; note?: string };
 type Slot = { dayId: string; dayLabel: string; time: string };
 
 /** Deterministic qualifier (§8): steps → recommendation → concrete time slot →
@@ -145,11 +149,22 @@ export function BotQualifier({
   const [sending, setSending] = useState(false);
   const status = useOpenStatus();
   const reduce = useReducedMotion();
-  const total = BOT_STEPS.length;
+  const steps = getSteps(answers.problem?.value);
+  const total = steps.length;
   const isResult = step >= total;
 
   const choose = (stepId: string, opt: BotOption) => {
-    setAnswers((a) => ({ ...a, [stepId]: { value: opt.value, label: opt.label } }));
+    setAnswers((a) => {
+      const next: Record<string, Answer> = {
+        ...a,
+        [stepId]: { value: opt.value, label: opt.label, note: opt.note },
+      };
+      // changing the problem invalidates its problem-specific follow-up
+      if (stepId === "problem" && a.problem && a.problem.value !== opt.value) {
+        delete next.detail;
+      }
+      return next;
+    });
     // timeline answer pre-opens the matching slot day — no double-asking time
     if (stepId === "timeline" && TIMELINE_DAY[opt.value]) {
       setActiveDay(TIMELINE_DAY[opt.value]);
@@ -306,7 +321,7 @@ export function BotQualifier({
 
       {Object.keys(answers).length > 0 && (
         <div className="mb-4 flex flex-wrap gap-2">
-          {BOT_STEPS.map((s, i) =>
+          {steps.map((s, i) =>
             answers[s.id] ? (
               <button
                 key={s.id}
@@ -407,7 +422,7 @@ export function BotQualifier({
             transition={{ duration: 0.3, ease: ease.out }}
           >
             <h3 className="font-display text-xl font-medium text-bone sm:text-2xl">
-              {BOT_STEPS[step].question}
+              {steps[step].question}
             </h3>
             <motion.div
               variants={OPT_LIST}
@@ -415,7 +430,7 @@ export function BotQualifier({
               animate="animate"
               className="mt-4 grid gap-2"
             >
-              {BOT_STEPS[step].options.map((opt) => {
+              {steps[step].options.map((opt) => {
                 const Icon = ICONS[opt.icon] ?? Info;
                 return (
                   <motion.button
@@ -425,7 +440,7 @@ export function BotQualifier({
                     whileHover={{ y: -2 }}
                     whileTap={TAP}
                     transition={SPRING}
-                    onClick={() => choose(BOT_STEPS[step].id, opt)}
+                    onClick={() => choose(steps[step].id, opt)}
                     className="group relative flex min-h-12 items-center gap-3 overflow-hidden rounded-[var(--radius-md)] border border-line-2 bg-gradient-to-br from-white/[0.04] to-transparent px-3 py-2.5 text-left text-sm text-bone transition-colors hover:border-feature/40"
                   >
                     {/* light sweep on hover (transform only) */}
@@ -528,6 +543,16 @@ export function BotQualifier({
               />
               {rec.warranty}
             </p>
+            {answers.detail?.note && (
+              <p className="mt-2.5 flex items-start gap-1.5 rounded-[var(--radius-sm)] border border-attention/25 bg-attention/5 px-2.5 py-2 text-xs leading-relaxed text-muted">
+                <Info
+                  size={14}
+                  weight="light"
+                  className="mt-0.5 shrink-0 text-attention"
+                />
+                {answers.detail.note}
+              </p>
+            )}
             </div>
 
             {/* RIGHT — concrete time + CTA */}

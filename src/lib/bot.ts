@@ -2,9 +2,16 @@ import { SERVICES, type Service } from "@/lib/content";
 
 /**
  * Bot qualifier — deterministic layer 1 (§8). Frontend only: no API call.
- * Steps: car type → problem → desired result → timeline. The problem choice
- * carries a serviceId that drives the recommendation. Booking = Telegram
- * handoff with a pre-filled summary.
+ *
+ * Logical, consultative flow (problem-led, like a real diagnosis):
+ *   1. problem  — what brought you in (drives the recommendation)
+ *   2. detail   — a follow-up whose options DEPEND on the problem (severity /
+ *                 scope) — feels attentive and qualifies the job for the master
+ *   3. carType  — the vehicle (logistics / price band)
+ *   4. timeline — when it suits (logistics; pre-opens a slot day)
+ *
+ * Every path is exactly 4 steps, so the stepper stays clean. The detail step is
+ * resolved from the chosen problem via getSteps().
  */
 
 export type BotOption = {
@@ -13,41 +20,119 @@ export type BotOption = {
   serviceId?: Service["id"];
   /** icon key — mapped to a Phosphor glyph in BotQualifier (keeps this file JSX-free). */
   icon: string;
+  /** optional honest note surfaced on the result card (e.g. "maybe replacement"). */
+  note?: string;
 };
 
 export type BotStep = { id: string; question: string; options: BotOption[] };
 
-export const BOT_STEPS: BotStep[] = [
-  {
-    id: "carType",
-    question: "Який у вас автомобіль?",
+/* 1 — the reason they're here. Leads, because it's what the visitor came for,
+   and the chosen serviceId drives the recommendation. */
+const PROBLEM_STEP: BotStep = {
+  id: "problem",
+  question: "З чим до нас?",
+  options: [
+    { value: "chip", label: "Скол або тріщина на склі", serviceId: "repair", icon: "warning" },
+    { value: "glass", label: "Подряпини чи каламуть скла", serviceId: "glass-polish", icon: "drop" },
+    { value: "headlights", label: "Тьмяні або жовті фари", serviceId: "headlights", icon: "lightbulb" },
+    { value: "protect", label: "Захист скла та фар плівкою", serviceId: "ppf", icon: "shield" },
+  ],
+};
+
+/* 2 — problem-specific follow-up. Same step slot, different questions/options
+   depending on what was chosen above. Refines the brief (and adds honesty where
+   a repair might turn into a replacement). */
+const DETAIL_STEPS: Record<string, BotStep> = {
+  chip: {
+    id: "detail",
+    question: "Наскільки велике пошкодження?",
     options: [
-      { value: "sedan", label: "Седан", icon: "car" },
-      { value: "suv", label: "Кросовер / SUV", icon: "jeep" },
-      { value: "premium", label: "Преміум", icon: "crown" },
-      { value: "other", label: "Інше", icon: "dots" },
+      { value: "small", label: "Невеликий скол (до 2 см)", icon: "ruler" },
+      { value: "crack", label: "Тріщина до 30 см", icon: "path" },
+      {
+        value: "big",
+        label: "Велика тріщина або біля краю скла",
+        icon: "warning",
+        note: "Можлива заміна скла — майстер оцінить, чи візьме ремонт.",
+      },
     ],
   },
-  {
-    id: "problem",
-    question: "Що турбує?",
+  glass: {
+    id: "detail",
+    question: "Що саме зі склом?",
     options: [
-      { value: "chip", label: "Скол / тріщина на лобовому", serviceId: "repair", icon: "warning" },
-      { value: "glass", label: "Подряпини / помутніння скла", serviceId: "glass-polish", icon: "drop" },
-      { value: "headlights", label: "Мутні / жовті фари", serviceId: "headlights", icon: "lightbulb" },
-      { value: "protect", label: "Захист фар і зон ризику", serviceId: "ppf", icon: "shield" },
+      { value: "wiper", label: "Подряпини від двірників і піску", icon: "path" },
+      { value: "haze", label: "Каламуть, відблиски у контр-світлі", icon: "eye" },
+      { value: "deep", label: "Глибокі подряпини", icon: "warning" },
     ],
   },
-  {
-    id: "timeline",
-    question: "Коли зручно?",
+  headlights: {
+    id: "detail",
+    question: "У якому стані фари?",
     options: [
-      { value: "asap", label: "Якомога швидше", icon: "lightning" },
-      { value: "weekend", label: "Цими вихідними", icon: "calendar" },
-      { value: "info", label: "Поки лише дізнаюся", icon: "info" },
+      { value: "dim", label: "Трохи потьмяніли", icon: "sun" },
+      { value: "yellow", label: "Сильно пожовтіли або каламутні", icon: "lightbulb" },
+      {
+        value: "cracked",
+        label: "Є тріщини на склі фари",
+        icon: "warning",
+        note: "Після полірування варто захистити фари плівкою — підкажемо на місці.",
+      },
     ],
   },
-];
+  protect: {
+    id: "detail",
+    question: "Що захищаємо плівкою?",
+    options: [
+      { value: "ppf-head", label: "Фари", icon: "lightbulb" },
+      { value: "ppf-windshield", label: "Лобове скло", icon: "drop" },
+      { value: "ppf-all", label: "Фари та зони ризику", icon: "shield" },
+    ],
+  },
+};
+
+/* fallback if the detail step is ever rendered before a problem is set. */
+const FALLBACK_DETAIL: BotStep = {
+  id: "detail",
+  question: "Уточніть деталі",
+  options: [
+    { value: "minor", label: "Незначне", icon: "info" },
+    { value: "serious", label: "Помітне", icon: "warning" },
+  ],
+};
+
+/* 3 — the vehicle (price band / PPF area). */
+const CAR_TYPE_STEP: BotStep = {
+  id: "carType",
+  question: "Який у вас автомобіль?",
+  options: [
+    { value: "sedan", label: "Седан", icon: "car" },
+    { value: "suv", label: "Кросовер або SUV", icon: "jeep" },
+    { value: "premium", label: "Преміум", icon: "crown" },
+    { value: "other", label: "Інше", icon: "dots" },
+  ],
+};
+
+/* 4 — logistics; pre-opens the matching slot day. */
+const TIMELINE_STEP: BotStep = {
+  id: "timeline",
+  question: "Коли зручно підʼїхати?",
+  options: [
+    { value: "asap", label: "Якомога швидше", icon: "lightning" },
+    { value: "weekend", label: "Цими вихідними", icon: "calendar" },
+    { value: "info", label: "Спершу хочу ціну та деталі", icon: "info" },
+  ],
+};
+
+/** Ordered step list with the detail step resolved from the chosen problem. */
+export function getSteps(problem?: string): BotStep[] {
+  return [
+    PROBLEM_STEP,
+    (problem && DETAIL_STEPS[problem]) || FALLBACK_DETAIL,
+    CAR_TYPE_STEP,
+    TIMELINE_STEP,
+  ];
+}
 
 /** Timeline answer → which slot day to pre-open (so we don't ask for time twice). */
 export const TIMELINE_DAY: Record<string, string> = {
@@ -69,8 +154,7 @@ export const SERVICE_ACCENT: Record<
 };
 
 export function getRecommendation(problemValue: string): Service {
-  const problemStep = BOT_STEPS.find((s) => s.id === "problem");
-  const option = problemStep?.options.find((o) => o.value === problemValue);
+  const option = PROBLEM_STEP.options.find((o) => o.value === problemValue);
   const serviceId = option?.serviceId ?? "repair";
   return SERVICES.find((s) => s.id === serviceId) ?? SERVICES[0];
 }

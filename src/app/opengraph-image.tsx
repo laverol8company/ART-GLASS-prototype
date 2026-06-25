@@ -45,7 +45,7 @@ export default function OpengraphImage() {
             </svg>
           </div>
           <div style={{ fontSize: "30px", fontWeight: 700, letterSpacing: "-0.02em" }}>
-            ARTGLASS
+            Прототип
           </div>
         </div>
 

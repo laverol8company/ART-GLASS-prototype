@@ -3,7 +3,7 @@
  * Single source for header, floating actions, footer, location and the bot.
  */
 export const CONTACTS = {
-  brand: "Art Glass",
+  brand: "Прототип",
   city: "Київ",
   /* PLACEHOLDER — replace */ phone: "+38 (0XX) XXX-XX-XX",
   /* PLACEHOLDER — replace */ phoneHref: "tel:+380000000000",

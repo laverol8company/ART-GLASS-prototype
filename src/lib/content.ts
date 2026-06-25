@@ -229,7 +229,7 @@ export const FAQ: Faq[] = [
 /* §6.8 — Studio / why us */
 export const STUDIO = {
   master: "Андрій",
-  masterRole: "Майстер Art Glass",
+  masterRole: "Майстер студії",
   experience: "7 років зі склом і оптикою",
 };
 

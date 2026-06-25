@@ -176,7 +176,7 @@ export function IntroLoader() {
           </div>
 
           <span className="font-display text-xl font-semibold tracking-[-0.02em] text-bone">
-            ARTGLASS
+            Прототип
           </span>
         </motion.div>
       )}

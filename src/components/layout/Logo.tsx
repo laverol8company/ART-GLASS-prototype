@@ -38,7 +38,7 @@ export function Logo({ className }: { className?: string }) {
         </svg>
       </span>
       <span className="font-display text-lg font-semibold tracking-[-0.02em] text-bone">
-        ARTGLASS
+        Прототип
       </span>
     </a>
   );

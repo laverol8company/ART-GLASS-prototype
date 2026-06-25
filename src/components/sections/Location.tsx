@@ -31,7 +31,7 @@ export function Location() {
           <Reveal>
             <div className="relative h-[300px] w-full overflow-hidden rounded-[var(--radius-lg)] border border-line bg-surface lg:h-[54vh]">
               <iframe
-                title="Карта — Art Glass, Київ"
+                title="Карта — Прототип, Київ"
                 src="https://www.google.com/maps?q=%D0%9A%D0%B8%D1%97%D0%B2&z=12&output=embed"
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"

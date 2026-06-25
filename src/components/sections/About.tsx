@@ -24,7 +24,7 @@ export function About() {
             <Parallax className="h-[30vh] w-full rounded-[var(--radius-lg)] lg:h-[46vh]">
               <MediaPlaceholder
                 src="/media/polishing.jpg"
-                alt="Майстер Art Glass за роботою"
+                alt="Майстер студії за роботою"
                 className="h-full w-full"
               />
             </Parallax>
